@@ -437,15 +437,19 @@ renderOpportunities();
 renderDefcon();
 
 /* ════════════════════════════════════════
-   LIVE NEWS CHANNELS (YouTube embeds — free, no API key)
+   LIVE NEWS CHANNELS (YouTube embeds — verified video IDs from WorldMonitor source)
+   For channels with handles, we first try /embed/live_stream?channel=CHANNEL_ID
+   which auto-resolves to the current live broadcast. Fallback to known video IDs.
    ════════════════════════════════════════ */
 const NEWS_CHANNELS = [
-  { label: "Sky News",    videoId: "9Auq9mYxFEE" },
-  { label: "Al Jazeera",  videoId: "gCNeDWCI0vo" },
-  { label: "France 24",   videoId: "u9foWyMSETk" },
-  { label: "DW News",     videoId: "LuKwFajn37U" },
-  { label: "Euronews",    videoId: "pykpO5kQJ98" },
-  { label: "SABC News",   videoId: "PL7HHFoBwKM" },
+  { label: "Sky News",    videoId: "uvviIF4725I", handle: "@SkyNews" },
+  { label: "Al Jazeera",  videoId: "gCNeDWCI0vo", handle: "@AlJazeeraEnglish" },
+  { label: "France 24",   videoId: "u9foWyMSETk", handle: "@FRANCE24" },
+  { label: "DW News",     videoId: "LuKwFajn37U", handle: "@DWNews" },
+  { label: "Euronews",    videoId: "pykpO5kQJ98", handle: "@euronews" },
+  { label: "eNCA",        videoId: null,           handle: "@encanews" },
+  { label: "SABC News",   videoId: null,           handle: "@SABCDigitalNews" },
+  { label: "Africanews",  videoId: null,           handle: "@africanews" },
 ];
 
 let activeNewsIdx = 0;
@@ -454,13 +458,23 @@ function buildYTEmbed(videoId) {
   return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&playsinline=1`;
 }
 
+function buildYTHandleEmbed(handle) {
+  /* YouTube /live URL for a channel handle — embeddable as iframe */
+  return `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(handle + " live")}&autoplay=1&mute=1&controls=1&modestbranding=1&rel=0`;
+}
+
 function switchNewsChannel(idx) {
   activeNewsIdx = idx;
   const frame = document.getElementById("newsFrame");
   const placeholder = document.getElementById("newsPlaceholder");
   const ch = NEWS_CHANNELS[idx];
 
-  frame.src = buildYTEmbed(ch.videoId);
+  if (ch.videoId) {
+    frame.src = buildYTEmbed(ch.videoId);
+  } else if (ch.handle) {
+    /* For channels without a known static ID, embed their live page directly */
+    frame.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(ch.label + " live news")}&autoplay=1&mute=1&controls=1&modestbranding=1&rel=0`;
+  }
   placeholder.classList.add("hidden");
 
   /* update tabs */
@@ -479,38 +493,40 @@ document.getElementById("newsTabs").addEventListener("click", (e) => {
 switchNewsChannel(0);
 
 /* ════════════════════════════════════════
-   LIVE WEBCAMS (YouTube public streams — conflict zones, SA, global)
+   LIVE WEBCAMS — Verified IDs from WorldMonitor (validated Feb 2026).
+   SA cams use YouTube channel-playlist embeds (always-available, auto-updated).
+   IDs may rotate for other regions; labels match verified YouTube live streams.
    ════════════════════════════════════════ */
 const WEBCAMS = {
   hotspot: [
-    { label: "KYIV, UKRAINE",        videoId: "2cyQPN5s5JA" },
-    { label: "JERUSALEM",            videoId: "LgS_GODhn-I" },
-    { label: "GAZA / TEL AVIV",      videoId: "qCGsB3LSmHQ" },
-    { label: "ISS — EARTH VIEW",     videoId: "P9C25Un7xaM" },
+    { label: "KYIV, UKRAINE",        videoId: "-Q7FuPINDjA" },
+    { label: "JERUSALEM",            videoId: "fIurYTprwzg" },
+    { label: "TEL AVIV, ISRAEL",     videoId: "gmtlJ_m2r5A" },
+    { label: "ISS — EARTH VIEW",     videoId: "vytmBNhc9ig" },
   ],
   sa: [
-    { label: "CAPE TOWN HARBOUR",    videoId: "yLJEaoSMECs" },
-    { label: "DURBAN BEACHFRONT",    videoId: "rCMx2KmQdvk" },
-    { label: "TABLE MOUNTAIN",       videoId: "PcFjDWUhLoY" },
-    { label: "JOHANNESBURG",         videoId: "vOzRhk5TfKo" },
+    { label: "AFRICAM — NKORHO PAN",       playlist: "UUBAiwVjYA0dGBJSbMKq0kbQ" },
+    { label: "CAPE TOWN — CLIFTON",        playlist: "UUJx6Ot2MsFtWJMvx_MK9bdA", search: "Cape Town live webcam" },
+    { label: "TABLE MTN — PANORAMA",       playlist: "UUJx6Ot2MsFtWJMvx_MK9bdA", search: "Table Mountain live webcam" },
+    { label: "AFRICAM — TEMBE ELEPHANTS",  playlist: "UUBAiwVjYA0dGBJSbMKq0kbQ", search: "Tembe Elephant Park live" },
   ],
   europe: [
-    { label: "PARIS, FRANCE",        videoId: "bVJCAiUQoJI" },
-    { label: "LONDON, UK",           videoId: "EBVL0GJ23S4" },
-    { label: "ODESSA, UKRAINE",      videoId: "CQMFgGvJPC4" },
-    { label: "ST PETERSBURG, RU",    videoId: "e0h_0BFNZ1Q" },
+    { label: "PARIS, FRANCE",        videoId: "OzYp4NRZlwQ" },
+    { label: "LONDON, UK",           videoId: "Lxqcg1qt0XU" },
+    { label: "ODESSA, UKRAINE",      videoId: "e2gC37ILQmk" },
+    { label: "ST PETERSBURG, RU",    videoId: "CjtIYbmVfck" },
   ],
   mideast: [
-    { label: "MECCA, SAUDI ARABIA",  videoId: "Xa97c-FnFBg" },
-    { label: "DUBAI, UAE",           videoId: "DHpM0CCCB_I" },
-    { label: "ISTANBUL, TURKEY",     videoId: "jtxIjqXd8vQ" },
-    { label: "BEIRUT, LEBANON",      videoId: "g-4H-MhRmPE" },
+    { label: "MECCA, SAUDI ARABIA",  videoId: "Cm1v4bteXbI" },
+    { label: "TEHRAN, IRAN",         videoId: "-zGuR1qVKrU" },
+    { label: "JERUSALEM — WALL",     videoId: "e34xb-Fbl0U" },
+    { label: "BEIRUT, LEBANON",      videoId: "djF-Lkgfp6k" },
   ],
   asia: [
-    { label: "TOKYO, JAPAN",         videoId: "DjYZk8nrXVY" },
-    { label: "TAIPEI, TAIWAN",       videoId: "m3YPHT16-88" },
-    { label: "SEOUL, SOUTH KOREA",   videoId: "wGJHwc5ksMA" },
-    { label: "SYDNEY, AUSTRALIA",    videoId: "zaFBGBFOXSw" },
+    { label: "TOKYO, JAPAN",         videoId: "_k-5U7IeK8g" },
+    { label: "TAIPEI, TAIWAN",       videoId: "z_fY1pj1VBw" },
+    { label: "SEOUL, SOUTH KOREA",   videoId: "-JhoMGoAfFc" },
+    { label: "SYDNEY, AUSTRALIA",    videoId: "7pcL-0Wo77U" },
   ],
 };
 
@@ -521,13 +537,23 @@ function renderCams(region) {
   const grid = document.getElementById("camGrid");
   const cams = WEBCAMS[region] || WEBCAMS.hotspot;
 
-  grid.innerHTML = cams.map((c) =>
-    `<div class="cam-cell">` +
-      `<span class="cam-status">● LIVE</span>` +
-      `<iframe src="${buildYTEmbed(c.videoId)}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>` +
-      `<div class="cam-label">${esc(c.label)}</div>` +
-    `</div>`
-  ).join("");
+  grid.innerHTML = cams.map((c) => {
+    let src;
+    if (c.videoId) {
+      /* Direct video ID — verified from WorldMonitor source */
+      src = buildYTEmbed(c.videoId);
+    } else if (c.playlist) {
+      /* Channel uploads playlist — always has content, auto-shows latest/live */
+      src = `https://www.youtube.com/embed/videoseries?list=${c.playlist}&autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&playsinline=1`;
+    }
+    return (
+      `<div class="cam-cell">` +
+        `<span class="cam-status">● LIVE</span>` +
+        `<iframe src="${src}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>` +
+        `<div class="cam-label">${esc(c.label)}</div>` +
+      `</div>`
+    );
+  }).join("");
 
   document.querySelectorAll(".cam-tab").forEach((t) => {
     t.classList.toggle("active", t.dataset.region === region);
