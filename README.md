@@ -73,6 +73,16 @@ npm run dev:happy      # happy.worldmonitor.app
 
 See the **[self-hosting guide](https://www.worldmonitor.app/docs/getting-started)** for deployment options (Vercel, Docker, static).
 
+### RD-Eye Portfolio Add-On: Threat Matrix
+
+A lightweight static Threat Matrix system is included for Risk Diversion portfolio use:
+
+- Path: `/rd-threatmatrix/`
+- Entry file: `public/rd-threatmatrix/index.html`
+- Host target example: `https://beekon.co.za/rd-threatmatrix`
+
+This page runs with plain HTML/CSS/JavaScript, stores data in browser local storage, and requires no backend.
+
 ---
 
 ## Tech Stack

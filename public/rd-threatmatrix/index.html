@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RD Threat Matrix</title>
+    <meta
+      name="description"
+      content="Simple Threat Matrix for Risk Diversion portfolio with impact, likelihood, and risk scoring."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <p class="eyebrow">Risk Diversion</p>
+        <h1>Threat Matrix</h1>
+        <p class="subtext">Simple 5x5 likelihood vs impact scoring for fast risk triage.</p>
+      </header>
+
+      <section class="panel controls" aria-label="Threat controls">
+        <div class="control-grid">
+          <label>
+            Threat name
+            <input id="threatName" type="text" placeholder="Example: Port disruption" />
+          </label>
+          <label>
+            Category
+            <input id="threatCategory" type="text" placeholder="Example: Supply Chain" />
+          </label>
+          <button id="addThreatBtn" type="button">Add threat</button>
+        </div>
+
+        <div class="list-wrap">
+          <h2>Threat List</h2>
+          <ul id="threatList" class="threat-list"></ul>
+        </div>
+      </section>
+
+      <section class="panel matrix-wrap" aria-label="Threat matrix">
+        <h2>Likelihood x Impact Matrix</h2>
+        <p class="hint">Select a threat, then click one matrix cell to set score.</p>
+        <div id="matrix" class="matrix" role="grid" aria-label="Threat matrix grid"></div>
+      </section>
+
+      <section class="panel summary" aria-live="polite">
+        <h2>Selected Threat</h2>
+        <p id="selectedThreatText">No threat selected.</p>
+        <p><strong>Likelihood:</strong> <span id="likelihoodValue">-</span></p>
+        <p><strong>Impact:</strong> <span id="impactValue">-</span></p>
+        <p><strong>Risk Score:</strong> <span id="scoreValue">-</span></p>
+        <p><strong>Risk Level:</strong> <span id="levelValue">-</span></p>
+      </section>
+
+      <footer class="footer">
+        <a href="https://beekon.co.za" target="_blank" rel="noopener noreferrer">RD-Eye Portfolio</a>
+      </footer>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
