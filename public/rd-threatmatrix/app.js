@@ -52,6 +52,8 @@ const HOTSPOTS = [
   { id:18,name:"Horn of Africa",    lat:9.0,   lng:42.0,  cat:"climate",       level:"elevated", detail:"Severe drought — food insecurity affecting millions" },
   { id:19,name:"Kashmir LoC",       lat:34.1,  lng:74.8,  cat:"conflicts",     level:"high",     detail:"Cross-border skirmishes and ceasefire violations" },
   { id:20,name:"Venezuela Border",  lat:7.8,   lng:-72.2, cat:"conflicts",     level:"elevated", detail:"Political instability and Essequibo territorial dispute" },
+  { id:21,name:"Cape of Good Hope", lat:-34.35, lng:18.49, cat:"maritime",      level:"elevated", detail:"Increased shipping traffic as vessels reroute from Red Sea — strategic chokepoint for SA" },
+  { id:22,name:"Mozambique Channel",lat:-17.0,  lng:41.0,  cat:"maritime",      level:"elevated", detail:"Key alternate route alongside Cape — piracy risk and LNG shipping corridor" },
 ];
 
 const SEVERITY_ORDER = { critical:0, high:1, elevated:2, monitoring:3 };
@@ -294,17 +296,18 @@ renderHotspots();
 /* ════════════════════════════════════════
    AI THREAT BRIEF (synthesized from hotspot data)
    ════════════════════════════════════════ */
-const THEATERS = [
-  { name: "Eastern Europe",   hotspots: [1],       icon: "⚔" },
-  { name: "Middle East",      hotspots: [2,5,6,10],icon: "⚔" },
-  { name: "Indo-Pacific",     hotspots: [3,4,8],   icon: "🛡" },
-  { name: "Africa",           hotspots: [7,14,17,18],icon: "⚠" },
-  { name: "Cyber Domain",     hotspots: [11,12],   icon: "🔒" },
-  { name: "South Asia",       hotspots: [19],      icon: "⚔" },
-  { name: "Americas",         hotspots: [20],      icon: "⚠" },
+/* SA Impact Domains — how global threats translate to South Africa */
+const SA_DOMAINS = [
+  { name: "Maritime & Cape Route",  hotspots: [6,9,21,22],  icon: "🚢", saNote: "Red Sea disruption reroutes vessels via Cape of Good Hope — increased port traffic but higher maritime risk" },
+  { name: "Energy & Resources",     hotspots: [5,6,9,13],   icon: "⛽", saNote: "Oil supply chain pressure and Strait of Hormuz tensions affect fuel import costs" },
+  { name: "Regional Stability",     hotspots: [7,14,17,18], icon: "🌍", saNote: "Sahel & Horn of Africa conflicts drive migration pressure and SADC peacekeeping demands" },
+  { name: "Trade & Supply Chains",  hotspots: [1,2,3,10],   icon: "📦", saNote: "Global conflicts disrupt import/export flows — SA auto, agri, and metals sectors exposed" },
+  { name: "Cyber & Infrastructure", hotspots: [11,12],      icon: "🔒", saNote: "SA critical infrastructure (Eskom, Transnet, banks) remains a ransomware target" },
+  { name: "Food & Climate",         hotspots: [18,17],      icon: "🌾", saNote: "Regional drought and health crises strain borders and food supply" },
+  { name: "Geopolitical Positioning",hotspots: [1,3,4,20],   icon: "🏛", saNote: "BRICS membership and non-aligned stance create diplomatic leverage but also pressure" },
 ];
 
-function theaterLevel(ids) {
+function domainLevel(ids) {
   const levels = ids.map((id) => {
     const h = HOTSPOTS.find((x) => x.id === id);
     return h ? SEVERITY_ORDER[h.level] ?? 9 : 9;
@@ -313,7 +316,7 @@ function theaterLevel(ids) {
   return ["CRIT","HIGH","ELEV","MON"][worst] || "—";
 }
 
-function theaterBadge(lvl) {
+function domainBadge(lvl) {
   if (lvl === "CRIT") return "badge-crit";
   if (lvl === "HIGH") return "badge-high";
   if (lvl === "ELEV") return "badge-med";
@@ -324,19 +327,15 @@ function renderPosture() {
   const list = document.getElementById("postureList");
   document.getElementById("postureNew").style.display = "inline";
 
-  list.innerHTML = THEATERS.map((t) => {
-    const lvl = theaterLevel(t.hotspots);
-    const badge = theaterBadge(lvl);
-    const details = t.hotspots.map((id) => {
-      const h = HOTSPOTS.find((x) => x.id === id);
-      return h ? h.name : "";
-    }).filter(Boolean);
+  list.innerHTML = SA_DOMAINS.map((d) => {
+    const lvl = domainLevel(d.hotspots);
+    const badge = domainBadge(lvl);
     return (
       `<div class="posture-row">` +
-        `<span class="posture-theater">${t.icon} ${esc(t.name)}</span>` +
+        `<span class="posture-theater">${d.icon} ${esc(d.name)}</span>` +
         `<span class="posture-badge ${badge}">${lvl}</span>` +
       `</div>` +
-      `<div class="posture-detail"><span>${details.map(esc).join(" · ")}</span></div>`
+      `<div class="posture-detail"><span>${esc(d.saNote)}</span></div>`
     );
   }).join("");
 }
@@ -344,27 +343,78 @@ function renderPosture() {
 function renderBrief() {
   const crits = HOTSPOTS.filter((h) => h.level === "critical");
   const highs = HOTSPOTS.filter((h) => h.level === "high");
+  const maritime = HOTSPOTS.filter((h) => h.cat === "maritime");
 
   const lines = [];
-  if (crits.length) {
+
+  /* headline */
+  lines.push(`SOUTH AFRICA THREAT ASSESSMENT — ${crits.length} critical and ${highs.length} high-severity situations monitored globally.`);
+
+  /* Cape of Good Hope / maritime */
+  const redSea = HOTSPOTS.find((h) => h.id === 6);
+  if (redSea && (redSea.level === "critical" || redSea.level === "high")) {
     lines.push(
-      `${crits.length} critical threat${crits.length > 1 ? "s" : ""} active: ` +
-      crits.map((h) => h.name).join(", ") + "."
+      "Red Sea anti-shipping attacks are forcing major carriers to reroute via the Cape of Good Hope, " +
+      "increasing vessel traffic through South African waters by an estimated 40-60%. " +
+      "This raises collision risk, search-and-rescue demands, and environmental exposure along the Western Cape coast, " +
+      "but also generates significant port revenue uplift for Cape Town, Saldanha Bay, and Richards Bay."
     );
   }
-  if (highs.length) {
-    lines.push(
-      `${highs.length} high-severity situation${highs.length > 1 ? "s" : ""} under watch: ` +
-      highs.map((h) => h.name).join(", ") + "."
-    );
-  }
+
+  /* energy impact */
   lines.push(
-    "Global threat surface remains elevated. " +
-    "Maritime chokepoints in the Red Sea and Strait of Hormuz continue to pressure energy supply chains. " +
-    "Cyber threat actors are intensifying campaigns against critical infrastructure across NATO states."
+    "Strait of Hormuz tensions and Middle East instability continue to pressure global oil prices. " +
+    "South Africa, as a net fuel importer, faces direct cost-of-living impact through higher petrol and diesel prices."
+  );
+
+  /* regional Africa */
+  const africaConflicts = HOTSPOTS.filter((h) => [7,14,17,18].includes(h.id) && (h.level === "critical" || h.level === "high"));
+  if (africaConflicts.length) {
+    lines.push(
+      `Regional instability in ${africaConflicts.map((h) => h.name).join(", ")} increases migration pressure on SA borders ` +
+      "and stretches SANDF peacekeeping commitments within SADC."
+    );
+  }
+
+  /* cyber */
+  lines.push(
+    "Global ransomware campaigns targeting critical infrastructure remain at critical level. " +
+    "SA entities — particularly Eskom, Transnet, and the financial sector — are in the active target set."
   );
 
   document.getElementById("aiBrief").textContent = lines.join(" ");
+}
+
+/* ═══════ OPPORTUNITIES FOR SA ═══════ */
+const SA_OPPORTUNITIES = [
+  { icon: "🚢", title: "Cape Route Revenue Surge",
+    detail: "Red Sea rerouting drives 40-60% more vessel transits past the Cape — port fees, bunkering, ship repair, and logistics services at Cape Town, Saldanha Bay, and Richards Bay see direct uplift." },
+  { icon: "⛏", title: "Critical Minerals Demand",
+    detail: "SA holds 80% of global platinum, 70% of manganese, and major chromium reserves. Geopolitical supply chain diversification away from China/Russia increases demand and pricing power for SA mining exports." },
+  { icon: "🔋", title: "Green Energy Transition",
+    detail: "Global push for renewables and battery storage creates export demand for SA's vanadium, lithium, and rare earths. Green hydrogen projects in the Northern Cape position SA as a future clean energy exporter." },
+  { icon: "🏛", title: "BRICS+ Diplomatic Leverage",
+    detail: "SA's BRICS membership and non-aligned stance provide diplomatic leverage. Trade corridors with India, Brazil, and UAE expand beyond traditional Western markets." },
+  { icon: "🌾", title: "Agricultural Export Window",
+    detail: "Climate disruptions in competing regions (Horn of Africa drought, Black Sea grain blockades) open export windows for SA citrus, wine, maize, and deciduous fruit to premium markets." },
+  { icon: "🛡", title: "Maritime Security Hub",
+    detail: "Increased Cape traffic creates opportunity for SA Navy and private sector to offer maritime security, surveillance, and escort services — positioning SA as the Indian Ocean's western anchor." },
+  { icon: "💻", title: "Tech & Cybersecurity Growth",
+    detail: "Rising global cyber threats drive demand for cybersecurity talent. SA's growing tech sector in Cape Town and Johannesburg can capture outsourced security operations work." },
+];
+
+function renderOpportunities() {
+  const el = document.getElementById("opportunitiesList");
+  if (!el) return;
+  el.innerHTML = SA_OPPORTUNITIES.map((o) =>
+    `<div class="opp-item">` +
+      `<span class="opp-icon">${o.icon}</span>` +
+      `<div class="opp-info">` +
+        `<div class="opp-title">${esc(o.title)}</div>` +
+        `<div class="opp-detail">${esc(o.detail)}</div>` +
+      `</div>` +
+    `</div>`
+  ).join("");
 }
 
 /* compute overall DEFCON-style threat level */
@@ -383,4 +433,5 @@ function renderDefcon() {
 
 renderBrief();
 renderPosture();
+renderOpportunities();
 renderDefcon();
