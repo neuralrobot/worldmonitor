@@ -435,3 +435,110 @@ renderBrief();
 renderPosture();
 renderOpportunities();
 renderDefcon();
+
+/* ════════════════════════════════════════
+   LIVE NEWS CHANNELS (YouTube embeds — free, no API key)
+   ════════════════════════════════════════ */
+const NEWS_CHANNELS = [
+  { label: "Sky News",    videoId: "9Auq9mYxFEE" },
+  { label: "Al Jazeera",  videoId: "gCNeDWCI0vo" },
+  { label: "France 24",   videoId: "u9foWyMSETk" },
+  { label: "DW News",     videoId: "LuKwFajn37U" },
+  { label: "Euronews",    videoId: "pykpO5kQJ98" },
+  { label: "SABC News",   videoId: "PL7HHFoBwKM" },
+];
+
+let activeNewsIdx = 0;
+
+function buildYTEmbed(videoId) {
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&playsinline=1`;
+}
+
+function switchNewsChannel(idx) {
+  activeNewsIdx = idx;
+  const frame = document.getElementById("newsFrame");
+  const placeholder = document.getElementById("newsPlaceholder");
+  const ch = NEWS_CHANNELS[idx];
+
+  frame.src = buildYTEmbed(ch.videoId);
+  placeholder.classList.add("hidden");
+
+  /* update tabs */
+  document.querySelectorAll(".news-tab").forEach((t, i) => {
+    t.classList.toggle("active", i === idx);
+  });
+}
+
+document.getElementById("newsTabs").addEventListener("click", (e) => {
+  if (!e.target.matches(".news-tab")) return;
+  const idx = parseInt(e.target.dataset.ch, 10);
+  if (!isNaN(idx)) switchNewsChannel(idx);
+});
+
+/* auto-start first channel */
+switchNewsChannel(0);
+
+/* ════════════════════════════════════════
+   LIVE WEBCAMS (YouTube public streams — conflict zones, SA, global)
+   ════════════════════════════════════════ */
+const WEBCAMS = {
+  hotspot: [
+    { label: "KYIV, UKRAINE",        videoId: "2cyQPN5s5JA" },
+    { label: "JERUSALEM",            videoId: "LgS_GODhn-I" },
+    { label: "GAZA / TEL AVIV",      videoId: "qCGsB3LSmHQ" },
+    { label: "ISS — EARTH VIEW",     videoId: "P9C25Un7xaM" },
+  ],
+  sa: [
+    { label: "CAPE TOWN HARBOUR",    videoId: "yLJEaoSMECs" },
+    { label: "DURBAN BEACHFRONT",    videoId: "rCMx2KmQdvk" },
+    { label: "TABLE MOUNTAIN",       videoId: "PcFjDWUhLoY" },
+    { label: "JOHANNESBURG",         videoId: "vOzRhk5TfKo" },
+  ],
+  europe: [
+    { label: "PARIS, FRANCE",        videoId: "bVJCAiUQoJI" },
+    { label: "LONDON, UK",           videoId: "EBVL0GJ23S4" },
+    { label: "ODESSA, UKRAINE",      videoId: "CQMFgGvJPC4" },
+    { label: "ST PETERSBURG, RU",    videoId: "e0h_0BFNZ1Q" },
+  ],
+  mideast: [
+    { label: "MECCA, SAUDI ARABIA",  videoId: "Xa97c-FnFBg" },
+    { label: "DUBAI, UAE",           videoId: "DHpM0CCCB_I" },
+    { label: "ISTANBUL, TURKEY",     videoId: "jtxIjqXd8vQ" },
+    { label: "BEIRUT, LEBANON",      videoId: "g-4H-MhRmPE" },
+  ],
+  asia: [
+    { label: "TOKYO, JAPAN",         videoId: "DjYZk8nrXVY" },
+    { label: "TAIPEI, TAIWAN",       videoId: "m3YPHT16-88" },
+    { label: "SEOUL, SOUTH KOREA",   videoId: "wGJHwc5ksMA" },
+    { label: "SYDNEY, AUSTRALIA",    videoId: "zaFBGBFOXSw" },
+  ],
+};
+
+let activeCamRegion = "hotspot";
+
+function renderCams(region) {
+  activeCamRegion = region;
+  const grid = document.getElementById("camGrid");
+  const cams = WEBCAMS[region] || WEBCAMS.hotspot;
+
+  grid.innerHTML = cams.map((c) =>
+    `<div class="cam-cell">` +
+      `<span class="cam-status">● LIVE</span>` +
+      `<iframe src="${buildYTEmbed(c.videoId)}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>` +
+      `<div class="cam-label">${esc(c.label)}</div>` +
+    `</div>`
+  ).join("");
+
+  document.querySelectorAll(".cam-tab").forEach((t) => {
+    t.classList.toggle("active", t.dataset.region === region);
+  });
+}
+
+document.getElementById("camTabs").addEventListener("click", (e) => {
+  if (!e.target.matches(".cam-tab")) return;
+  const region = e.target.dataset.region;
+  if (region) renderCams(region);
+});
+
+/* initial render */
+renderCams("hotspot");

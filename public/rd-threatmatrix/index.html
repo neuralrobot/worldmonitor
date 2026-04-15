@@ -64,6 +64,47 @@
     </div>
   </section>
 
+  <!-- ═══ LIVE VIDEO / WEBCAMS ROW ═══ -->
+  <section class="video-row">
+
+    <!-- PANEL: Live News -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">LIVE NEWS</span>
+        <span class="panel-badge badge-live">● LIVE</span>
+      </div>
+      <div class="news-tabs" id="newsTabs">
+        <button class="news-tab active" data-ch="0">SKY NEWS</button>
+        <button class="news-tab" data-ch="1">AL JAZEERA</button>
+        <button class="news-tab" data-ch="2">FRANCE 24</button>
+        <button class="news-tab" data-ch="3">DW NEWS</button>
+        <button class="news-tab" data-ch="4">EURONEWS</button>
+        <button class="news-tab" data-ch="5">SABC</button>
+      </div>
+      <div class="panel-body video-container">
+        <iframe id="newsFrame" class="video-frame" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
+        <div id="newsPlaceholder" class="video-placeholder">Select a channel above</div>
+      </div>
+    </div>
+
+    <!-- PANEL: Live Webcams -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">LIVE WEBCAMS</span>
+        <span class="panel-badge badge-live">● LIVE</span>
+      </div>
+      <div class="cam-tabs" id="camTabs">
+        <button class="cam-tab active" data-region="hotspot">HOTSPOTS</button>
+        <button class="cam-tab" data-region="sa">SOUTH AFRICA</button>
+        <button class="cam-tab" data-region="europe">EUROPE</button>
+        <button class="cam-tab" data-region="mideast">MID-EAST</button>
+        <button class="cam-tab" data-region="asia">ASIA</button>
+      </div>
+      <div class="panel-body cam-grid" id="camGrid"></div>
+    </div>
+
+  </section>
+
   <!-- ═══ BOTTOM PANELS ═══ -->
   <section class="bottom-grid">
 

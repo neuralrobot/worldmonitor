@@ -27,7 +27,7 @@
   --font: 'SF Mono','Monaco','Cascadia Code','Fira Code','DejaVu Sans Mono','Liberation Mono',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
+html,body{height:100%;overflow-y:auto;overflow-x:hidden}
 body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:12px;line-height:1.45}
 
 /* ═══════ TOP BAR ═══════ */
@@ -75,8 +75,29 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:12
 .map-legend{display:flex;align-items:center;gap:14px;padding:4px 14px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;height:24px}
 .legend-tag{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim);letter-spacing:.04em}
 
+/* ═══════ VIDEO / WEBCAM ROW ═══════ */
+.video-row{display:grid;grid-template-columns:1fr 1fr;height:280px;border-bottom:1px solid var(--border)}
+.video-container{position:relative;background:#000}
+.video-frame{width:100%;height:100%;border:none;display:block}
+.video-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:11px;background:#000}
+.video-placeholder.hidden{display:none}
+
+/* news channel tabs */
+.news-tabs,.cam-tabs{display:flex;gap:0;border-bottom:1px solid var(--border-sub);flex-shrink:0;padding:0 2px;height:28px;align-items:end;overflow-x:auto}
+.news-tab,.cam-tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-dim);font-family:var(--font);font-size:9px;font-weight:700;letter-spacing:.04em;padding:4px 8px;cursor:pointer;white-space:nowrap}
+.news-tab:hover,.cam-tab:hover{color:var(--text2)}
+.news-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.cam-tab.active{color:#0ea5e9;border-bottom-color:#0ea5e9}
+
+/* webcam grid */
+.cam-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1px;background:var(--border-sub);padding:0!important}
+.cam-cell{position:relative;background:#000;overflow:hidden;min-height:0}
+.cam-cell iframe{width:100%;height:100%;border:none;display:block}
+.cam-label{position:absolute;bottom:0;left:0;right:0;padding:3px 8px;background:linear-gradient(transparent,rgba(0,0,0,.85));font-size:9px;font-weight:700;color:#fff;letter-spacing:.04em;pointer-events:none;z-index:1}
+.cam-cell .cam-status{position:absolute;top:4px;right:6px;font-size:8px;color:var(--green);font-weight:700;letter-spacing:.06em;z-index:1}
+
 /* ═══════ BOTTOM PANELS GRID ═══════ */
-.bottom-grid{display:grid;grid-template-columns:1fr 1fr 1fr;height:calc(50vh - 33px);min-height:240px}
+.bottom-grid{display:grid;grid-template-columns:1fr 1fr 1fr;height:calc(50vh - 33px - 140px);min-height:200px}
 
 /* panel chrome */
 .panel{background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
@@ -161,13 +182,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:12
 
 /* ═══════ responsive ═══════ */
 @media(max-width:900px){
+  .video-row{grid-template-columns:1fr;height:auto}
+  .video-row .panel{min-height:200px}
   .bottom-grid{grid-template-columns:1fr;height:auto}
   .bottom-grid .panel{min-height:220px}
   html,body{overflow:auto}
   .map-section{height:40vh}
+  .cam-grid{grid-template-columns:1fr 1fr}
 }
 @media(max-width:600px){
   .topbar-center{display:none}
   .layers-sidebar{width:140px}
   .layer-item{font-size:10px}
+  .cam-grid{grid-template-columns:1fr}
+  .news-tabs,.cam-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
