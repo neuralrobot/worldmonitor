@@ -3,59 +3,122 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RD Threat Matrix</title>
-    <meta
-      name="description"
-      content="Simple Threat Matrix for Risk Diversion portfolio with impact, likelihood, and risk scoring."
-    />
+    <title>RD Threat Matrix — Risk Diversion</title>
+    <meta name="description" content="5×5 Likelihood vs Impact threat-scoring matrix for Risk Diversion (RD-Eye) portfolio." />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="app">
-      <header class="hero">
-        <p class="eyebrow">Risk Diversion</p>
-        <h1>Threat Matrix</h1>
-        <p class="subtext">Simple 5x5 likelihood vs impact scoring for fast risk triage.</p>
-      </header>
 
-      <section class="panel controls" aria-label="Threat controls">
-        <div class="control-grid">
-          <label>
-            Threat name
-            <input id="threatName" type="text" placeholder="Example: Port disruption" />
-          </label>
-          <label>
-            Category
-            <input id="threatCategory" type="text" placeholder="Example: Supply Chain" />
-          </label>
-          <button id="addThreatBtn" type="button">Add threat</button>
+    <!-- ── top bar ── -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="brand">Threat Matrix</span>
+        <span class="brand-sub">RD-Eye</span>
+        <span class="status-dot" title="Active"></span>
+      </div>
+      <div class="topbar-right">
+        <span id="clock" style="color:#888;font-size:11px"></span>
+        <a class="topbar-link" href="https://beekon.co.za" target="_blank" rel="noopener noreferrer">Portfolio ↗</a>
+      </div>
+    </header>
+
+    <!-- ── four-panel grid ── -->
+    <div class="dash">
+
+      <!-- Panel 1 — threat register -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Threat Register</span>
+          <span id="countBadge" class="panel-badge badge-info">0</span>
         </div>
-
-        <div class="list-wrap">
-          <h2>Threat List</h2>
+        <div class="panel-body">
+          <div class="control-row">
+            <div class="field">
+              <span class="field-label">Threat</span>
+              <input id="threatName" type="text" placeholder="e.g. Port disruption" />
+            </div>
+            <div class="field">
+              <span class="field-label">Category</span>
+              <input id="threatCategory" type="text" placeholder="e.g. Supply Chain" />
+            </div>
+            <button id="addThreatBtn" type="button" class="btn">+ Add</button>
+          </div>
           <ul id="threatList" class="threat-list"></ul>
         </div>
-      </section>
+      </div>
 
-      <section class="panel matrix-wrap" aria-label="Threat matrix">
-        <h2>Likelihood x Impact Matrix</h2>
-        <p class="hint">Select a threat, then click one matrix cell to set score.</p>
-        <div id="matrix" class="matrix" role="grid" aria-label="Threat matrix grid"></div>
-      </section>
+      <!-- Panel 2 — matrix -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Likelihood × Impact</span>
+        </div>
+        <div class="panel-body matrix-area">
+          <div class="matrix-labels">
+            <span class="axis-label">← Impact →</span>
+            <span class="axis-label" style="margin-left:auto">↑ Likelihood</span>
+          </div>
+          <div id="matrix" class="matrix" role="grid" aria-label="Threat matrix grid"></div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot ld-low"></span> Low</div>
+          <div class="legend-item"><span class="legend-dot ld-med"></span> Medium</div>
+          <div class="legend-item"><span class="legend-dot ld-high"></span> High</div>
+          <div class="legend-item"><span class="legend-dot ld-critical"></span> Critical</div>
+        </div>
+      </div>
 
-      <section class="panel summary" aria-live="polite">
-        <h2>Selected Threat</h2>
-        <p id="selectedThreatText">No threat selected.</p>
-        <p><strong>Likelihood:</strong> <span id="likelihoodValue">-</span></p>
-        <p><strong>Impact:</strong> <span id="impactValue">-</span></p>
-        <p><strong>Risk Score:</strong> <span id="scoreValue">-</span></p>
-        <p><strong>Risk Level:</strong> <span id="levelValue">-</span></p>
-      </section>
+      <!-- Panel 3 — selected threat summary -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Selected Threat</span>
+          <span id="levelBadge" class="panel-badge badge-info">—</span>
+        </div>
+        <div class="panel-body" aria-live="polite">
+          <div id="selectedThreatText" class="selected-name">No threat selected</div>
+          <div id="selectedCatText" class="selected-cat"></div>
+          <div class="summary-grid">
+            <div class="stat">
+              <div class="stat-label">Likelihood</div>
+              <div id="likelihoodValue" class="stat-value v-none">–</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Impact</div>
+              <div id="impactValue" class="stat-value v-none">–</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Score</div>
+              <div id="scoreValue" class="stat-value v-none">–</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Level</div>
+              <div id="levelValue" class="stat-value v-none">–</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <footer class="footer">
-        <a href="https://beekon.co.za" target="_blank" rel="noopener noreferrer">RD-Eye Portfolio</a>
-      </footer>
-    </main>
+      <!-- Panel 4 — risk overview / all threats -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Risk Overview</span>
+        </div>
+        <div class="panel-body">
+          <table id="overviewTable" style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="border-bottom:1px solid #2a2a2a">
+                <th style="text-align:left;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Threat</th>
+                <th style="text-align:center;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">L</th>
+                <th style="text-align:center;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">I</th>
+                <th style="text-align:center;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Score</th>
+                <th style="text-align:center;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Level</th>
+              </tr>
+            </thead>
+            <tbody id="overviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
 
     <script src="./app.js"></script>
   </body>
