@@ -1,125 +1,124 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RD Threat Matrix — Risk Diversion</title>
-    <meta name="description" content="5×5 Likelihood vs Impact threat-scoring matrix for Risk Diversion (RD-Eye) portfolio." />
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RD Threat Matrix — Global Threat Intelligence</title>
+  <meta name="description" content="Real-time global threat intelligence dashboard for the Risk Diversion (RD-Eye) portfolio." />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
 
-    <!-- ── top bar ── -->
-    <header class="topbar">
-      <div class="topbar-left">
-        <span class="brand">Threat Matrix</span>
-        <span class="brand-sub">RD-Eye</span>
-        <span class="status-dot" title="Active"></span>
+  <!-- ═══ TOP BAR ═══ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="brand-pill">THREAT</span>
+      <span class="brand-name">MATRIX</span>
+      <span class="brand-ver">v1.0</span>
+      <span class="brand-sub">RD-Eye</span>
+      <span class="sep">●</span>
+      <span class="live-pill">● LIVE</span>
+    </div>
+    <div class="topbar-center">
+      <span id="defconPill" class="defcon-pill defcon-4">THREAT LVL 4</span>
+    </div>
+    <div class="topbar-right">
+      <span id="clock" class="clock"></span>
+      <a class="topbar-link" href="https://beekon.co.za" target="_blank" rel="noopener noreferrer">RD-Eye ↗</a>
+    </div>
+  </header>
+
+  <!-- ═══ SITUATION BAR ═══ -->
+  <div class="situation-bar">
+    <span class="sit-label">GLOBAL SITUATION</span>
+    <span id="dateUtc" class="sit-date"></span>
+  </div>
+
+  <!-- ═══ MAP + LAYERS ═══ -->
+  <section class="map-section">
+    <aside class="layers-sidebar" id="layersSidebar">
+      <div class="layers-head">
+        <span>LAYERS</span>
+        <button class="layers-toggle" id="layersToggle" title="Toggle layers">▾</button>
       </div>
-      <div class="topbar-right">
-        <span id="clock" style="color:#888;font-size:11px"></span>
-        <a class="topbar-link" href="https://beekon.co.za" target="_blank" rel="noopener noreferrer">Portfolio ↗</a>
+      <div class="layers-list" id="layersList">
+        <label class="layer-item"><input type="checkbox" data-layer="conflicts" checked /><span class="ldot" style="background:#ef4444"></span> Conflict Zones</label>
+        <label class="layer-item"><input type="checkbox" data-layer="cyber" checked /><span class="ldot" style="background:#a855f7"></span> Cyber Threats</label>
+        <label class="layer-item"><input type="checkbox" data-layer="military" checked /><span class="ldot" style="background:#f97316"></span> Military Activity</label>
+        <label class="layer-item"><input type="checkbox" data-layer="infrastructure" checked /><span class="ldot" style="background:#3b82f6"></span> Infrastructure</label>
+        <label class="layer-item"><input type="checkbox" data-layer="health" /><span class="ldot" style="background:#22c55e"></span> Health / Pandemic</label>
+        <label class="layer-item"><input type="checkbox" data-layer="climate" /><span class="ldot" style="background:#06b6d4"></span> Climate Events</label>
+        <label class="layer-item"><input type="checkbox" data-layer="terror" checked /><span class="ldot" style="background:#dc2626"></span> Terror Alerts</label>
+        <label class="layer-item"><input type="checkbox" data-layer="maritime" /><span class="ldot" style="background:#0ea5e9"></span> Maritime Chokepoints</label>
+        <label class="layer-item"><input type="checkbox" data-layer="nuclear" /><span class="ldot" style="background:#facc15"></span> Nuclear Sites</label>
       </div>
-    </header>
+    </aside>
+    <div id="map" class="map-container"></div>
+    <div class="map-legend">
+      <span class="legend-tag"><span class="ldot" style="background:#ef4444"></span> High Alert</span>
+      <span class="legend-tag"><span class="ldot" style="background:#f97316"></span> Elevated</span>
+      <span class="legend-tag"><span class="ldot" style="background:#eab308"></span> Monitoring</span>
+      <span class="legend-tag"><span class="ldot" style="background:#3b82f6"></span> Infrastructure</span>
+      <span class="legend-tag"><span class="ldot" style="background:#a855f7"></span> Cyber</span>
+    </div>
+  </section>
 
-    <!-- ── four-panel grid ── -->
-    <div class="dash">
+  <!-- ═══ BOTTOM PANELS ═══ -->
+  <section class="bottom-grid">
 
-      <!-- Panel 1 — threat register -->
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title">Threat Register</span>
-          <span id="countBadge" class="panel-badge badge-info">0</span>
-        </div>
-        <div class="panel-body">
-          <div class="control-row">
-            <div class="field">
-              <span class="field-label">Threat</span>
-              <input id="threatName" type="text" placeholder="e.g. Port disruption" />
-            </div>
-            <div class="field">
-              <span class="field-label">Category</span>
-              <input id="threatCategory" type="text" placeholder="e.g. Supply Chain" />
-            </div>
-            <button id="addThreatBtn" type="button" class="btn">+ Add</button>
-          </div>
-          <ul id="threatList" class="threat-list"></ul>
-        </div>
+    <!-- PANEL: Live Feeds -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">LIVE FEEDS</span>
+        <span class="panel-badge badge-live">● LIVE</span>
       </div>
-
-      <!-- Panel 2 — matrix -->
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title">Likelihood × Impact</span>
-        </div>
-        <div class="panel-body matrix-area">
-          <div class="matrix-labels">
-            <span class="axis-label">← Impact →</span>
-            <span class="axis-label" style="margin-left:auto">↑ Likelihood</span>
-          </div>
-          <div id="matrix" class="matrix" role="grid" aria-label="Threat matrix grid"></div>
-        </div>
-        <div class="legend">
-          <div class="legend-item"><span class="legend-dot ld-low"></span> Low</div>
-          <div class="legend-item"><span class="legend-dot ld-med"></span> Medium</div>
-          <div class="legend-item"><span class="legend-dot ld-high"></span> High</div>
-          <div class="legend-item"><span class="legend-dot ld-critical"></span> Critical</div>
-        </div>
+      <div class="feed-tabs" id="feedTabs">
+        <button class="feed-tab active" data-feed="all">ALL</button>
+        <button class="feed-tab" data-feed="reuters">REUTERS</button>
+        <button class="feed-tab" data-feed="bbc">BBC</button>
+        <button class="feed-tab" data-feed="cyber">CYBER</button>
       </div>
-
-      <!-- Panel 3 — selected threat summary -->
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title">Selected Threat</span>
-          <span id="levelBadge" class="panel-badge badge-info">—</span>
-        </div>
-        <div class="panel-body" aria-live="polite">
-          <div id="selectedThreatText" class="selected-name">No threat selected</div>
-          <div id="selectedCatText" class="selected-cat"></div>
-          <div class="summary-grid">
-            <div class="stat">
-              <div class="stat-label">Likelihood</div>
-              <div id="likelihoodValue" class="stat-value v-none">–</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Impact</div>
-              <div id="impactValue" class="stat-value v-none">–</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Score</div>
-              <div id="scoreValue" class="stat-value v-none">–</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Level</div>
-              <div id="levelValue" class="stat-value v-none">–</div>
-            </div>
-          </div>
-        </div>
+      <div class="panel-body feed-scroll" id="feedList">
+        <div class="feed-loading">Loading feeds…</div>
       </div>
-
-      <!-- Panel 4 — risk overview / all threats -->
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title">Risk Overview</span>
-        </div>
-        <div class="panel-body">
-          <table id="overviewTable" style="width:100%;border-collapse:collapse">
-            <thead>
-              <tr style="border-bottom:1px solid #2a2a2a">
-                <th style="text-align:left;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Threat</th>
-                <th style="text-align:center;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">L</th>
-                <th style="text-align:center;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">I</th>
-                <th style="text-align:center;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Score</th>
-                <th style="text-align:center;padding:4px 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.06em">Level</th>
-              </tr>
-            </thead>
-            <tbody id="overviewBody"></tbody>
-          </table>
-        </div>
-      </div>
-
     </div>
 
-    <script src="./app.js"></script>
-  </body>
+    <!-- PANEL: Threat Hotspots -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">THREAT HOTSPOTS</span>
+        <span id="hotspotCount" class="panel-badge badge-count">0</span>
+      </div>
+      <div class="panel-body hotspot-scroll" id="hotspotList"></div>
+    </div>
+
+    <!-- PANEL: AI Threat Brief -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">AI THREAT BRIEF</span>
+        <span class="panel-badge badge-live">● LIVE</span>
+      </div>
+      <div class="panel-body">
+        <div class="brief-section">
+          <div class="brief-dot"></div>
+          <span class="brief-label">SITUATION BRIEF</span>
+        </div>
+        <p id="aiBrief" class="brief-text">Analyzing global threat surface…</p>
+
+        <div class="posture-section">
+          <div class="posture-head">
+            <span class="brief-label">STRATEGIC POSTURE</span>
+            <span id="postureNew" class="posture-new" style="display:none">NEW</span>
+          </div>
+          <div id="postureList" class="posture-list"></div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="./app.js"></script>
+</body>
 </html>

@@ -1,312 +1,386 @@
-const STORAGE_KEY = "rd-threat-matrix-v1";
+/* ════════════════════════════════════════════════════════
+   RD Threat Matrix — dashboard logic
+   Map · Live Feeds · Threat Hotspots · AI Brief
+   ════════════════════════════════════════════════════════ */
 
-const state = {
-  threats: [],
-  selectedThreatId: null,
-};
-
-const el = {
-  threatName: document.getElementById("threatName"),
-  threatCategory: document.getElementById("threatCategory"),
-  addThreatBtn: document.getElementById("addThreatBtn"),
-  threatList: document.getElementById("threatList"),
-  matrix: document.getElementById("matrix"),
-  selectedThreatText: document.getElementById("selectedThreatText"),
-  selectedCatText: document.getElementById("selectedCatText"),
-  likelihoodValue: document.getElementById("likelihoodValue"),
-  impactValue: document.getElementById("impactValue"),
-  scoreValue: document.getElementById("scoreValue"),
-  levelValue: document.getElementById("levelValue"),
-  countBadge: document.getElementById("countBadge"),
-  levelBadge: document.getElementById("levelBadge"),
-  overviewBody: document.getElementById("overviewBody"),
-  clock: document.getElementById("clock"),
-};
-
-function uid() {
-  return `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+/* ── helpers ── */
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
-
-function riskLevel(score) {
-  if (score >= 20) return "Critical";
-  if (score >= 12) return "High";
-  if (score >= 6) return "Medium";
-  return "Low";
-}
-
-function cellTone(score) {
-  if (score >= 20) return "c-critical";
-  if (score >= 12) return "c-high";
-  if (score >= 6) return "c-med";
-  return "c-low";
-}
-
-function valueClass(score) {
-  if (score >= 20) return "v-critical";
-  if (score >= 12) return "v-high";
-  if (score >= 6) return "v-med";
-  return "v-low";
-}
-
-function badgeClass(score) {
-  if (score >= 20) return "badge-critical";
-  if (score >= 12) return "badge-high";
-  if (score >= 6) return "badge-medium";
-  return "badge-low";
-}
-
-function pillBg(score) {
-  if (score >= 20) return "background:#7f1d1d;color:#fca5a5";
-  if (score >= 12) return "background:#6b3410;color:#fdba74";
-  if (score >= 6) return "background:#5c5510;color:#fde047";
-  return "background:#134e2a;color:#86efac";
-}
-
-function selectedThreat() {
-  return state.threats.find((t) => t.id === state.selectedThreatId) || null;
-}
-
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-function load() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    state.threats = [
-      { id: uid(), name: "Port disruption", category: "Supply Chain", likelihood: 3, impact: 4 },
-      { id: uid(), name: "Grid outage", category: "Infrastructure", likelihood: 2, impact: 5 },
-      { id: uid(), name: "Cyber intrusion", category: "Cyber", likelihood: 4, impact: 3 },
-      { id: uid(), name: "Fuel embargo", category: "Energy", likelihood: 2, impact: 4 },
-    ];
-    state.selectedThreatId = state.threats[0].id;
-    save();
-    return;
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    state.threats = Array.isArray(parsed.threats) ? parsed.threats : [];
-    state.selectedThreatId = parsed.selectedThreatId || (state.threats[0] && state.threats[0].id) || null;
-  } catch {
-    localStorage.removeItem(STORAGE_KEY);
-    load();
-  }
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-/* ── render: threat list ── */
-function renderThreatList() {
-  el.threatList.innerHTML = "";
-  el.countBadge.textContent = String(state.threats.length);
-
-  if (!state.threats.length) {
-    const empty = document.createElement("li");
-    empty.style.cssText = "color:#666;font-size:11px;padding:6px 0";
-    empty.textContent = "No threats registered.";
-    el.threatList.appendChild(empty);
-    return;
-  }
-
-  state.threats.forEach((threat) => {
-    const score = (Number(threat.likelihood) || 1) * (Number(threat.impact) || 1);
-    const item = document.createElement("li");
-    item.className = `threat-item${threat.id === state.selectedThreatId ? " active" : ""}`;
-
-    const info = document.createElement("div");
-    info.innerHTML =
-      `<span class="threat-name">${escapeHtml(threat.name)}</span>` +
-      `<span class="threat-cat">${escapeHtml(threat.category || "—")}</span>`;
-    info.addEventListener("click", () => {
-      state.selectedThreatId = threat.id;
-      save();
-      renderAll();
-    });
-
-    const right = document.createElement("div");
-    right.style.cssText = "display:flex;align-items:center;gap:6px";
-
-    const pill = document.createElement("span");
-    pill.className = "threat-score-pill";
-    pill.style.cssText = pillBg(score);
-    pill.textContent = `${score} ${riskLevel(score).toUpperCase()}`;
-
-    const removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.className = "btn btn-danger";
-    removeBtn.textContent = "×";
-    removeBtn.title = "Remove threat";
-    removeBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      state.threats = state.threats.filter((t) => t.id !== threat.id);
-      if (state.selectedThreatId === threat.id) {
-        state.selectedThreatId = state.threats[0] ? state.threats[0].id : null;
-      }
-      save();
-      renderAll();
-    });
-
-    right.appendChild(pill);
-    right.appendChild(removeBtn);
-    item.appendChild(info);
-    item.appendChild(right);
-    el.threatList.appendChild(item);
-  });
-}
-
-/* ── render: matrix grid ── */
-function renderMatrix() {
-  el.matrix.innerHTML = "";
-  const selected = selectedThreat();
-
-  for (let likelihood = 5; likelihood >= 1; likelihood -= 1) {
-    // Y-axis label
-    const yLabel = document.createElement("div");
-    yLabel.className = "y-label";
-    yLabel.textContent = String(likelihood);
-    el.matrix.appendChild(yLabel);
-
-    for (let impact = 1; impact <= 5; impact += 1) {
-      const score = likelihood * impact;
-      const cell = document.createElement("button");
-      cell.type = "button";
-      cell.className = `cell ${cellTone(score)}`;
-      cell.textContent = String(score);
-      cell.title = `L${likelihood} × I${impact} = ${score}`;
-
-      if (selected && selected.likelihood === likelihood && selected.impact === impact) {
-        cell.classList.add("selected");
-      }
-
-      cell.addEventListener("click", () => {
-        if (!selected) return;
-        selected.likelihood = likelihood;
-        selected.impact = impact;
-        save();
-        renderAll();
-      });
-
-      el.matrix.appendChild(cell);
-    }
-  }
-
-  // X-axis label row
-  const corner = document.createElement("div");
-  corner.className = "corner";
-  el.matrix.appendChild(corner);
-  for (let i = 1; i <= 5; i++) {
-    const xLabel = document.createElement("div");
-    xLabel.className = "x-label";
-    xLabel.textContent = String(i);
-    el.matrix.appendChild(xLabel);
-  }
-}
-
-/* ── render: summary ── */
-function renderSummary() {
-  const selected = selectedThreat();
-
-  if (!selected) {
-    el.selectedThreatText.textContent = "No threat selected";
-    el.selectedCatText.textContent = "";
-    el.likelihoodValue.textContent = "–";
-    el.likelihoodValue.className = "stat-value v-none";
-    el.impactValue.textContent = "–";
-    el.impactValue.className = "stat-value v-none";
-    el.scoreValue.textContent = "–";
-    el.scoreValue.className = "stat-value v-none";
-    el.levelValue.textContent = "–";
-    el.levelValue.className = "stat-value v-none";
-    el.levelBadge.textContent = "—";
-    el.levelBadge.className = "panel-badge badge-info";
-    return;
-  }
-
-  const likelihood = Number(selected.likelihood) || 1;
-  const impact = Number(selected.impact) || 1;
-  const score = likelihood * impact;
-  const level = riskLevel(score);
-  const cls = valueClass(score);
-
-  el.selectedThreatText.textContent = selected.name;
-  el.selectedCatText.textContent = selected.category || "Uncategorized";
-  el.likelihoodValue.textContent = String(likelihood);
-  el.likelihoodValue.className = "stat-value " + cls;
-  el.impactValue.textContent = String(impact);
-  el.impactValue.className = "stat-value " + cls;
-  el.scoreValue.textContent = String(score);
-  el.scoreValue.className = "stat-value " + cls;
-  el.levelValue.textContent = level;
-  el.levelValue.className = "stat-value " + cls;
-  el.levelBadge.textContent = level.toUpperCase();
-  el.levelBadge.className = "panel-badge " + badgeClass(score);
-}
-
-/* ── render: overview table ── */
-function renderOverview() {
-  el.overviewBody.innerHTML = "";
-
-  const sorted = state.threats
-    .map((t) => {
-      const s = (Number(t.likelihood) || 1) * (Number(t.impact) || 1);
-      return { ...t, score: s };
-    })
-    .sort((a, b) => b.score - a.score);
-
-  sorted.forEach((t) => {
-    const row = document.createElement("tr");
-    row.style.cssText = "border-bottom:1px solid #1a1a1a";
-    const level = riskLevel(t.score);
-    row.innerHTML =
-      `<td style="padding:4px 6px;font-size:12px">${escapeHtml(t.name)}</td>` +
-      `<td style="text-align:center;padding:4px 6px;font-size:12px;color:#ccc">${t.likelihood}</td>` +
-      `<td style="text-align:center;padding:4px 6px;font-size:12px;color:#ccc">${t.impact}</td>` +
-      `<td style="text-align:center;padding:4px 6px;font-size:12px;font-weight:700">${t.score}</td>` +
-      `<td style="text-align:center;padding:4px 6px"><span class="threat-score-pill" style="${pillBg(t.score)}">${level}</span></td>`;
-    el.overviewBody.appendChild(row);
-  });
-}
-
-/* ── render all ── */
-function renderAll() {
-  renderThreatList();
-  renderMatrix();
-  renderSummary();
-  renderOverview();
-}
-
-/* ── add threat ── */
-function addThreat() {
-  const name = el.threatName.value.trim();
-  const category = el.threatCategory.value.trim();
-  if (!name) { el.threatName.focus(); return; }
-
-  const threat = { id: uid(), name, category, likelihood: 1, impact: 1 };
-  state.threats.unshift(threat);
-  state.selectedThreatId = threat.id;
-  el.threatName.value = "";
-  el.threatCategory.value = "";
-  save();
-  renderAll();
+function ago(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "";
+  const m = Math.round((Date.now() - d) / 60000);
+  if (m < 1) return "now";
+  if (m < 60) return m + "m";
+  if (m < 1440) return Math.floor(m / 60) + "h";
+  return Math.floor(m / 1440) + "d";
 }
 
 /* ── clock ── */
 function tickClock() {
-  el.clock.textContent = new Date().toUTCString().replace("GMT", "UTC");
+  const now = new Date();
+  document.getElementById("clock").textContent =
+    now.toUTCString().replace("GMT","UTC");
+  document.getElementById("dateUtc").textContent =
+    now.toUTCString().replace("GMT","UTC");
 }
-
-el.addThreatBtn.addEventListener("click", addThreat);
-el.threatName.addEventListener("keydown", (e) => { if (e.key === "Enter") addThreat(); });
-el.threatCategory.addEventListener("keydown", (e) => { if (e.key === "Enter") addThreat(); });
-
-load();
-renderAll();
 tickClock();
 setInterval(tickClock, 1000);
+
+/* ════════════════════════════════════════
+   THREAT HOTSPOT DATA (curated + live-extendable)
+   ════════════════════════════════════════ */
+const HOTSPOTS = [
+  { id:1, name:"Eastern Ukraine",   lat:48.5,  lng:37.8,  cat:"conflicts",     level:"critical", detail:"Active conflict zone — ongoing artillery, drone, and ground operations" },
+  { id:2, name:"Gaza Strip",        lat:31.4,  lng:34.38, cat:"conflicts",     level:"critical", detail:"Ongoing military operations and humanitarian crisis" },
+  { id:3, name:"Taiwan Strait",     lat:24.5,  lng:119.5, cat:"military",      level:"high",     detail:"Elevated military posture — naval exercises and air incursions" },
+  { id:4, name:"South China Sea",   lat:14.5,  lng:114.0, cat:"military",      level:"elevated", detail:"Territorial disputes — coast guard and naval confrontations" },
+  { id:5, name:"Iran Nuclear Sites",lat:33.7,  lng:51.4,  cat:"nuclear",       level:"high",     detail:"Uranium enrichment exceeding JCPOA limits — IAEA concern" },
+  { id:6, name:"Red Sea / Houthi",  lat:14.0,  lng:42.5,  cat:"maritime",      level:"critical", detail:"Anti-shipping attacks disrupting global trade routes" },
+  { id:7, name:"Sahel Region",      lat:14.5,  lng:-1.5,  cat:"conflicts",     level:"high",     detail:"Multi-state insurgency — Mali, Burkina Faso, Niger" },
+  { id:8, name:"Korean Peninsula",  lat:38.3,  lng:127.0, cat:"military",      level:"elevated", detail:"Missile tests and cross-border provocations" },
+  { id:9, name:"Strait of Hormuz",  lat:26.5,  lng:56.3,  cat:"maritime",      level:"elevated", detail:"Strategic oil chokepoint — periodic tanker seizures" },
+  { id:10,name:"Eastern Mediterranean",lat:34.5,lng:33.0,  cat:"military",      level:"high",     detail:"Naval buildup — carrier groups and surveillance ops" },
+  { id:11,name:"Ransomware (Global)",lat:40.0,  lng:-74.0, cat:"cyber",         level:"critical", detail:"Critical infrastructure targeted — healthcare, energy, finance" },
+  { id:12,name:"APT Campaigns",     lat:39.9,  lng:116.4, cat:"cyber",         level:"high",     detail:"State-sponsored actors targeting defense and tech sectors" },
+  { id:13,name:"Europe Grid Stress",lat:50.1,  lng:8.7,   cat:"infrastructure",level:"elevated", detail:"Energy grid under strain — gas supply disruptions" },
+  { id:14,name:"Sudan Conflict",    lat:15.6,  lng:32.5,  cat:"conflicts",     level:"critical", detail:"Civil war between SAF and RSF — mass displacement" },
+  { id:15,name:"Myanmar Civil War", lat:19.7,  lng:96.1,  cat:"conflicts",     level:"high",     detail:"Multi-front resistance against military junta" },
+  { id:16,name:"Arctic Militarization",lat:71.0,lng:25.0, cat:"military",      level:"monitoring",detail:"Military base expansion — NATO and Russian posturing" },
+  { id:17,name:"Mpox Outbreak",     lat:-4.3,  lng:15.3,  cat:"health",        level:"elevated", detail:"Clade Ib variant spreading across Central/East Africa" },
+  { id:18,name:"Horn of Africa",    lat:9.0,   lng:42.0,  cat:"climate",       level:"elevated", detail:"Severe drought — food insecurity affecting millions" },
+  { id:19,name:"Kashmir LoC",       lat:34.1,  lng:74.8,  cat:"conflicts",     level:"high",     detail:"Cross-border skirmishes and ceasefire violations" },
+  { id:20,name:"Venezuela Border",  lat:7.8,   lng:-72.2, cat:"conflicts",     level:"elevated", detail:"Political instability and Essequibo territorial dispute" },
+];
+
+const SEVERITY_ORDER = { critical:0, high:1, elevated:2, monitoring:3 };
+const SEVERITY_COLORS = { critical:"#ef4444", high:"#f97316", elevated:"#eab308", monitoring:"#22c55e" };
+const SEVERITY_CSS = { critical:"hl-critical", high:"hl-high", elevated:"hl-elevated", monitoring:"hl-monitoring" };
+
+/* ════════════════════════════════════════
+   MAP (Leaflet + CartoDB dark tiles — no API key)
+   ════════════════════════════════════════ */
+const map = L.map("map", {
+  center: [25, 20],
+  zoom: 2.5,
+  minZoom: 2,
+  maxZoom: 10,
+  zoomControl: false,
+  attributionControl: false,
+});
+L.control.zoom({ position: "topright" }).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+  subdomains: "abcd",
+  maxZoom: 19,
+}).addTo(map);
+
+/* marker layers keyed by category */
+const markerLayers = {};
+const enabledLayers = new Set();
+
+function buildMarkers() {
+  /* clear existing */
+  Object.values(markerLayers).forEach((lg) => map.removeLayer(lg));
+  Object.keys(markerLayers).forEach((k) => delete markerLayers[k]);
+
+  HOTSPOTS.forEach((h) => {
+    if (!markerLayers[h.cat]) markerLayers[h.cat] = L.layerGroup();
+    const color = SEVERITY_COLORS[h.level] || "#888";
+    const radius = h.level === "critical" ? 10 : h.level === "high" ? 8 : 6;
+
+    const marker = L.circleMarker([h.lat, h.lng], {
+      radius,
+      color,
+      fillColor: color,
+      fillOpacity: 0.55,
+      weight: 1.5,
+    });
+    marker.bindPopup(
+      `<div style="font-family:monospace;font-size:12px">` +
+        `<strong>${esc(h.name)}</strong><br/>` +
+        `<span style="color:${color};font-weight:700;text-transform:uppercase">${h.level}</span><br/>` +
+        `<span style="color:#ccc">${esc(h.detail)}</span>` +
+      `</div>`,
+      { className: "dark-popup" }
+    );
+    marker.addTo(markerLayers[h.cat]);
+  });
+
+  /* add checked layers */
+  document.querySelectorAll("#layersList input[type=checkbox]").forEach((cb) => {
+    const cat = cb.dataset.layer;
+    if (cb.checked) enabledLayers.add(cat);
+    else enabledLayers.delete(cat);
+  });
+  enabledLayers.forEach((cat) => {
+    if (markerLayers[cat]) markerLayers[cat].addTo(map);
+  });
+}
+
+/* layer toggles */
+document.getElementById("layersList").addEventListener("change", (e) => {
+  if (!e.target.matches("input[type=checkbox]")) return;
+  const cat = e.target.dataset.layer;
+  if (e.target.checked) {
+    enabledLayers.add(cat);
+    if (markerLayers[cat]) markerLayers[cat].addTo(map);
+  } else {
+    enabledLayers.delete(cat);
+    if (markerLayers[cat]) map.removeLayer(markerLayers[cat]);
+  }
+});
+
+/* pulsing rings for critical hotspots */
+function addPulseRings() {
+  HOTSPOTS.filter((h) => h.level === "critical").forEach((h) => {
+    L.circleMarker([h.lat, h.lng], {
+      radius: 18,
+      color: "#ef4444",
+      fillColor: "transparent",
+      weight: 1,
+      opacity: 0.4,
+      className: "pulse-ring",
+    }).addTo(map);
+  });
+}
+
+buildMarkers();
+addPulseRings();
+
+/* inject pulse animation into page */
+const pulseStyle = document.createElement("style");
+pulseStyle.textContent = `
+  .dark-popup .leaflet-popup-content-wrapper{background:#141414;color:#e8e8e8;border:1px solid #2a2a2a;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.6)}
+  .dark-popup .leaflet-popup-tip{background:#141414;border:1px solid #2a2a2a}
+  @keyframes pulse-ring{0%{r:18;opacity:.4}100%{r:30;opacity:0}}
+  .pulse-ring{animation:pulse-ring 2s ease-out infinite}
+`;
+document.head.appendChild(pulseStyle);
+
+/* ════════════════════════════════════════
+   LIVE FEEDS (RSS via rss2json.com free tier)
+   ════════════════════════════════════════ */
+const FEEDS = {
+  reuters: {
+    url: "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Ffeeds.reuters.com%2Freuters%2FworldNews",
+    label: "Reuters", cssClass: "src-reuters",
+  },
+  bbc: {
+    url: "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Ffeeds.bbci.co.uk%2Fnews%2Fworld%2Frss.xml",
+    label: "BBC", cssClass: "src-bbc",
+  },
+  cyber: {
+    url: "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Ffeeds.feedburner.com%2FTheHackersNews",
+    label: "Cyber", cssClass: "src-cyber",
+  },
+};
+
+let allFeedItems = [];
+let activeFeedFilter = "all";
+
+async function fetchFeeds() {
+  const results = [];
+  const keys = Object.keys(FEEDS);
+
+  const fetches = keys.map(async (key) => {
+    try {
+      const resp = await fetch(FEEDS[key].url);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.status !== "ok" || !data.items) return;
+      data.items.forEach((item) => {
+        results.push({
+          source: key,
+          label: FEEDS[key].label,
+          cssClass: FEEDS[key].cssClass,
+          title: item.title,
+          link: item.link,
+          pubDate: item.pubDate,
+        });
+      });
+    } catch { /* network fail — silent */ }
+  });
+
+  await Promise.all(fetches);
+
+  /* sort newest first */
+  results.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  allFeedItems = results;
+  renderFeeds();
+}
+
+function renderFeeds() {
+  const list = document.getElementById("feedList");
+  const items = activeFeedFilter === "all"
+    ? allFeedItems
+    : allFeedItems.filter((f) => f.source === activeFeedFilter);
+
+  if (!items.length) {
+    list.innerHTML = '<div class="feed-loading">No items — feeds loading or unavailable.</div>';
+    return;
+  }
+
+  list.innerHTML = items.slice(0, 40).map((f) =>
+    `<a class="feed-item" href="${esc(f.link)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:inherit">` +
+      `<span class="feed-time">${ago(f.pubDate)}</span>` +
+      `<div class="feed-body">` +
+        `<div class="feed-source ${f.cssClass}">${esc(f.label)}</div>` +
+        `<div class="feed-headline">${esc(f.title)}</div>` +
+      `</div>` +
+    `</a>`
+  ).join("");
+}
+
+/* feed tabs */
+document.getElementById("feedTabs").addEventListener("click", (e) => {
+  if (!e.target.matches(".feed-tab")) return;
+  document.querySelectorAll(".feed-tab").forEach((t) => t.classList.remove("active"));
+  e.target.classList.add("active");
+  activeFeedFilter = e.target.dataset.feed;
+  renderFeeds();
+});
+
+/* initial + auto-refresh every 5 min */
+fetchFeeds();
+setInterval(fetchFeeds, 300000);
+
+/* ════════════════════════════════════════
+   THREAT HOTSPOTS PANEL
+   ════════════════════════════════════════ */
+function renderHotspots() {
+  const el = document.getElementById("hotspotList");
+  const countEl = document.getElementById("hotspotCount");
+
+  const visible = HOTSPOTS
+    .filter((h) => enabledLayers.has(h.cat))
+    .sort((a, b) => (SEVERITY_ORDER[a.level] ?? 9) - (SEVERITY_ORDER[b.level] ?? 9));
+
+  countEl.textContent = String(visible.length);
+
+  el.innerHTML = visible.map((h) =>
+    `<div class="hotspot-item" data-lat="${h.lat}" data-lng="${h.lng}">` +
+      `<span class="hotspot-severity" style="background:${SEVERITY_COLORS[h.level] || "#888"}"></span>` +
+      `<div class="hotspot-info">` +
+        `<div class="hotspot-name">${esc(h.name)}</div>` +
+        `<div class="hotspot-detail">${esc(h.detail)}</div>` +
+      `</div>` +
+      `<span class="hotspot-level ${SEVERITY_CSS[h.level] || ""}">${h.level.toUpperCase()}</span>` +
+    `</div>`
+  ).join("");
+
+  /* click to fly to location on map */
+  el.querySelectorAll(".hotspot-item").forEach((item) => {
+    item.style.cursor = "pointer";
+    item.addEventListener("click", () => {
+      const lat = parseFloat(item.dataset.lat);
+      const lng = parseFloat(item.dataset.lng);
+      map.flyTo([lat, lng], 6, { duration: 1.2 });
+    });
+  });
+}
+
+/* re-render hotspots when layers change */
+document.getElementById("layersList").addEventListener("change", () => {
+  setTimeout(renderHotspots, 0);
+});
+
+/* initial render — all checked layers */
+document.querySelectorAll("#layersList input:checked").forEach((cb) =>
+  enabledLayers.add(cb.dataset.layer)
+);
+renderHotspots();
+
+/* ════════════════════════════════════════
+   AI THREAT BRIEF (synthesized from hotspot data)
+   ════════════════════════════════════════ */
+const THEATERS = [
+  { name: "Eastern Europe",   hotspots: [1],       icon: "⚔" },
+  { name: "Middle East",      hotspots: [2,5,6,10],icon: "⚔" },
+  { name: "Indo-Pacific",     hotspots: [3,4,8],   icon: "🛡" },
+  { name: "Africa",           hotspots: [7,14,17,18],icon: "⚠" },
+  { name: "Cyber Domain",     hotspots: [11,12],   icon: "🔒" },
+  { name: "South Asia",       hotspots: [19],      icon: "⚔" },
+  { name: "Americas",         hotspots: [20],      icon: "⚠" },
+];
+
+function theaterLevel(ids) {
+  const levels = ids.map((id) => {
+    const h = HOTSPOTS.find((x) => x.id === id);
+    return h ? SEVERITY_ORDER[h.level] ?? 9 : 9;
+  });
+  const worst = Math.min(...levels);
+  return ["CRIT","HIGH","ELEV","MON"][worst] || "—";
+}
+
+function theaterBadge(lvl) {
+  if (lvl === "CRIT") return "badge-crit";
+  if (lvl === "HIGH") return "badge-high";
+  if (lvl === "ELEV") return "badge-med";
+  return "badge-low";
+}
+
+function renderPosture() {
+  const list = document.getElementById("postureList");
+  document.getElementById("postureNew").style.display = "inline";
+
+  list.innerHTML = THEATERS.map((t) => {
+    const lvl = theaterLevel(t.hotspots);
+    const badge = theaterBadge(lvl);
+    const details = t.hotspots.map((id) => {
+      const h = HOTSPOTS.find((x) => x.id === id);
+      return h ? h.name : "";
+    }).filter(Boolean);
+    return (
+      `<div class="posture-row">` +
+        `<span class="posture-theater">${t.icon} ${esc(t.name)}</span>` +
+        `<span class="posture-badge ${badge}">${lvl}</span>` +
+      `</div>` +
+      `<div class="posture-detail"><span>${details.map(esc).join(" · ")}</span></div>`
+    );
+  }).join("");
+}
+
+function renderBrief() {
+  const crits = HOTSPOTS.filter((h) => h.level === "critical");
+  const highs = HOTSPOTS.filter((h) => h.level === "high");
+
+  const lines = [];
+  if (crits.length) {
+    lines.push(
+      `${crits.length} critical threat${crits.length > 1 ? "s" : ""} active: ` +
+      crits.map((h) => h.name).join(", ") + "."
+    );
+  }
+  if (highs.length) {
+    lines.push(
+      `${highs.length} high-severity situation${highs.length > 1 ? "s" : ""} under watch: ` +
+      highs.map((h) => h.name).join(", ") + "."
+    );
+  }
+  lines.push(
+    "Global threat surface remains elevated. " +
+    "Maritime chokepoints in the Red Sea and Strait of Hormuz continue to pressure energy supply chains. " +
+    "Cyber threat actors are intensifying campaigns against critical infrastructure across NATO states."
+  );
+
+  document.getElementById("aiBrief").textContent = lines.join(" ");
+}
+
+/* compute overall DEFCON-style threat level */
+function renderDefcon() {
+  const crits = HOTSPOTS.filter((h) => h.level === "critical").length;
+  const highs = HOTSPOTS.filter((h) => h.level === "high").length;
+  let lvl = 5, cls = "defcon-5", text = "THREAT LVL 5";
+  if (crits >= 4) { lvl = 1; cls = "defcon-1"; text = "THREAT LVL 1"; }
+  else if (crits >= 2) { lvl = 2; cls = "defcon-2"; text = "THREAT LVL 2"; }
+  else if (crits >= 1 || highs >= 4) { lvl = 3; cls = "defcon-3"; text = "THREAT LVL 3"; }
+  else if (highs >= 1) { lvl = 4; cls = "defcon-4"; text = "THREAT LVL 4"; }
+  const pill = document.getElementById("defconPill");
+  pill.className = "defcon-pill " + cls;
+  pill.textContent = text;
+}
+
+renderBrief();
+renderPosture();
+renderDefcon();
